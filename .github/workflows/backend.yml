@@ -1,11 +1,17 @@
 name: Backend
 
+# on:
+#   push:
+#     paths:
+#       - 'backend/**'
+#     branches: [ "master" ]
+#   workflow_dispatch:  # This allows manual triggering
+
 on:
   push:
-    paths:
-      - 'backend/**'
     branches: [ "master" ]
-  workflow_dispatch:  # This allows manual triggering
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
   build:
