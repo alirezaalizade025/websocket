@@ -25,3 +25,5 @@ WORKDIR /app
 COPY --from=base /builder/main main 
 
 CMD ["/app/main"]
+
+EXPOSE 8000
