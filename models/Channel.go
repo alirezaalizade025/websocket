@@ -51,8 +51,6 @@ func (c *Channel) Leave(username string, channelName string) {
 
 func (c *Channel) FirstOrCreate(channelName string) error {
 
-	log.Println(Channels)
-
 	if !channelExists(channelName) {
 
 		newChannel := Channel{
