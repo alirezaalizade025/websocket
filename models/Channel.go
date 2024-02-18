@@ -7,21 +7,32 @@ import (
 )
 
 type Channel struct {
-	ChannelName string   `json:"chanel_name"`
-	ChannelUsers       []string `json:"users"`
+	ChannelName  string   `json:"channel_name"`
+	ChannelUsers []string `json:"users"`
 }
 
 var Channels = []Channel{}
 
+func (c *Channel) Join(username string, channelName string) {
 
-func (c Channel) Join(username string, channelName string) {
+	// append if not exists
+	for _, u := range c.ChannelUsers {
+		if u == username {
+			return
+		}
+	}
 
 	c.ChannelUsers = append(c.ChannelUsers, username)
 
+	// set in Channels
+	for i, item := range Channels {
+		if item.ChannelName == c.ChannelName {
+			Channels[i].ChannelUsers = c.ChannelUsers
+		}
+	}
 }
 
-func (c Channel) Leave(username string, channelName string) {
-
+func (c *Channel) Leave(username string, channelName string) {
 
 	for i, u := range c.ChannelUsers {
 		if u == username {
@@ -29,9 +40,18 @@ func (c Channel) Leave(username string, channelName string) {
 		}
 	}
 
+	// set in Channels
+	for i, item := range Channels {
+		if item.ChannelName == c.ChannelName {
+			Channels[i].ChannelUsers = c.ChannelUsers
+		}
+	}
+
 }
 
-func (c Channel) FirstOrCreate(channelName string) error {
+func (c *Channel) FirstOrCreate(channelName string) error {
+
+	log.Println(Channels)
 
 	if !channelExists(channelName) {
 
@@ -42,28 +62,26 @@ func (c Channel) FirstOrCreate(channelName string) error {
 
 		Channels = append(Channels, newChannel)
 	}
-
 	for _, item := range Channels {
 		if item.ChannelName == channelName {
-			c = item
+
+			c.ChannelName = item.ChannelName
+			c.ChannelUsers = item.ChannelUsers
+
+			return nil
 		}
 	}
 
 	return errors.New("channel not found")
 }
 
-func (c Channel) InfoMessage() []byte {
-
-	infoJson, err := json.Marshal(c)
-	if err != nil {
-		log.Panicln(err)
-	}
+func (c *Channel) InfoMessage() []byte {
 
 	info, err := json.Marshal(Message{
 		Username: "SERVER",
 		Channel:  c.ChannelName,
-		Action:   "channel-info",
-		Data:     string(infoJson),
+		Action:   "channel_info",
+		Data:     c,
 	})
 
 	if err != nil {

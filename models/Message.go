@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"encoding/json"
 )
 
@@ -9,13 +8,10 @@ type Message struct {
 	Username string `json:"username"`
 	Channel  string `json:"channel"`
 	Action   string `json:"action"`
-	Data     string `json:"data"`
+	Data     interface{} `json:"data"`
 }
 
-func (msg Message) Decode(message string) error  {
+func (msg *Message) Decode(message []byte) error  {
 
-	jsonMsg := string(message)
-	decoder := json.NewDecoder(bytes.NewBufferString(jsonMsg))
-	return decoder.Decode(&msg)
-
+	return json.Unmarshal(message, &msg)
 }

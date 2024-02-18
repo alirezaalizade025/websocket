@@ -11,9 +11,6 @@ import (
 	"socket/models"
 )
 
-// type GopherInfo struct {
-// 	ID, X, Y string
-// }
 
 func main() {
 	m := melody.New()
@@ -25,23 +22,14 @@ func main() {
 	m.HandleConnect(func(s *melody.Session) {
 		// ss, _ := m.Sessions()
 
-		// for _, o := range ss {
-		// value, exists := o.Get("info")
-
-		// if !exists {
-		// 	continue
-		// }
-
-		// info := value.(*GopherInfo)
-
-		// s.Write([]byte("set " + info.ID + " " + info.X + " " + info.Y))
-		// }
-
 		id := uuid.NewString()
-		// s.Set("info", &GopherInfo{id, "0", "0"})
 
-		s.Write([]byte("iam " + id))
+		// s.Write([]byte("iam " + s.Request.URL.Query().Get("username")))
 		log.Println(id + " connected")
+
+		s.Keys = make(map[string]interface{}) // Initialize the Keys map
+
+		s.Keys["id"] = id
 	})
 
 	m.HandleDisconnect(func(s *melody.Session) {
@@ -60,42 +48,41 @@ func main() {
 
 		// decode message
 		message := models.Message{}
-		if err := message.Decode(string(msg)); err != nil {
+		if err := message.Decode(msg); err != nil {
 			log.Panicln(err)
 			return
 		}
 
-		// fmt.Println(message)
+		log.Println(s.Keys)
+		log.Println(message)
 
 		// find channel
 		channel := models.Channel{}
-		if err := channel.FirstOrCreate(message.Channel); err != nil {
+		err := channel.FirstOrCreate(message.Channel)
+		if err != nil {
 			log.Panicln(err)
 			return
 		}
 
 		// handle action of message
 		if message.Action == "join" {
-
 			channel.Join(message.Username, message.Channel)
-
 		} else if message.Action == "leave" {
-
 			channel.Leave(message.Username, message.Channel)
-
-		}
-
-		// json encode message
-		response, err := json.Marshal(message)
-		if err != nil {
-			log.Panicln(err)
 		}
 
 		// get channel info
 		channelInfo := channel.InfoMessage()
-
 		// message to sender about channel info
 		s.Write([]byte(channelInfo))
+		m.Broadcast([]byte(channelInfo))
+
+
+		// json encode message 
+		response, err := json.Marshal(message)
+		if err != nil {
+			log.Panicln(err)
+		}
 
 		// return message to sender
 		s.Write([]byte(response))
@@ -103,5 +90,6 @@ func main() {
 		m.BroadcastOthers([]byte(response), s)
 	})
 
+	log.Println("Server started at :8000")
 	http.ListenAndServe(":8000", nil)
 }
