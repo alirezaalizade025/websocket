@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/olahol/melody"
 )
 
 type Client struct {
@@ -15,7 +16,7 @@ type Client struct {
 	Channels  []string `json:"channels"`
 }
 
-var Clients = []Client{}
+var Clients = map[string]*Client{}
 
 // GenerateID generates a unique ID for the client.
 // It assigns the generated ID to the client's ID field.
@@ -44,9 +45,37 @@ func NewClient() Client {
 		ConnectAt: time.Now().Format(time.RFC3339), // Set ConnectAt to current timestamp
 	}
 
-	Clients = append(Clients, client)
+	// Clients = append(Clients, client)
+
+	Clients[client.ID] = &client
 
 	return client
+}
+
+func (client Client) LeaveAllChannels(m *melody.Melody) {
+	clientChannels := client.Channels
+	for _, channelName := range clientChannels {
+		channel, err := ChannelFirst(channelName)
+		if err != nil {
+			continue
+		}
+
+		channel.Leave(client.ID)
+
+		// // ---- leave broadcast -----
+		// message, err := json.Marshal(models.Message{
+		// 	Username:    client.Username,
+		// 	ChannelName: channelName,
+		// 	Action:      "disconnect",
+		// })
+		// if err != nil {
+		// 	log.Panicln(err)
+		// }
+		// channel.Broadcast(message, m)
+
+		// ---- channel info broadcast -----
+		channel.Broadcast(channel.InfoMessage(), m)
+	}
 }
 
 func MatchUsernameWithID(id, username string) error {
@@ -55,13 +84,11 @@ func MatchUsernameWithID(id, username string) error {
 		return nil
 	}
 
-	for i, client := range Clients {
-		if client.ID == id {
-			Clients[i].Username = username
-
-			return nil
-		}
+	if _, ok := Clients[id]; ok {
+		Clients[id].Username = username
+		return nil
 	}
+
 
 	return errors.New("Client not found")
 }
@@ -69,7 +96,7 @@ func MatchUsernameWithID(id, username string) error {
 func FindByUsername(username string) Client {
 	for _, client := range Clients {
 		if client.Username == username {
-			return client
+			return *client
 		}
 	}
 
@@ -77,15 +104,9 @@ func FindByUsername(username string) Client {
 }
 
 func FindByID(id string) Client {
-	// log.Println(Clients)
-	for _, client := range Clients {
 
-		if client.ID == id {
-
-			return client
-		} else {
-			// log.Println(client.ID, id)
-		}
+	if client, ok := Clients[id]; ok {
+		return *client
 	}
 
 	return Client{}

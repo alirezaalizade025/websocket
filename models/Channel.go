@@ -13,7 +13,7 @@ type Channel struct {
 	ChannelUsers []string `json:"users"`
 }
 
-var Channels = []Channel{}
+var Channels = map[string]*Channel{}
 
 func (c *Channel) Join(id string) {
 
@@ -26,11 +26,10 @@ func (c *Channel) Join(id string) {
 
 	c.ChannelUsers = append(c.ChannelUsers, id)
 
-	// set in Channels
-	for i, item := range Channels {
-		if item.ChannelName == c.ChannelName {
-			Channels[i].ChannelUsers = c.ChannelUsers
-		}
+
+	Channels[c.ChannelName] = &Channel{
+		ChannelName:  c.ChannelName,
+		ChannelUsers: c.ChannelUsers,
 	}
 
 	// add channel to client channels
@@ -43,17 +42,19 @@ func (c *Channel) Join(id string) {
 
 func (c *Channel) Leave(id string) {
 
+	if id == "" {
+		return
+	}
+
 	for i, u := range c.ChannelUsers {
 		if u == id {
 			c.ChannelUsers = append(c.ChannelUsers[:i], c.ChannelUsers[i+1:]...)
 		}
 	}
 
-	// set in Channels
-	for i, item := range Channels {
-		if item.ChannelName == c.ChannelName {
-			Channels[i].ChannelUsers = c.ChannelUsers
-		}
+	Channels[c.ChannelName] = &Channel{
+		ChannelName:  c.ChannelName,
+		ChannelUsers: c.ChannelUsers,
 	}
 
 	// remove channel name from client channels
@@ -77,19 +78,18 @@ func (c *Channel) FirstOrCreate(channelName string) error {
 			ChannelUsers: []string{},
 		}
 
-		Channels = append(Channels, newChannel)
-	}
-	for _, item := range Channels {
-		if item.ChannelName == channelName {
+		Channels[channelName] = &newChannel
 
-			c.ChannelName = item.ChannelName
-			c.ChannelUsers = item.ChannelUsers
-
-			return nil
-		}
 	}
 
-	return errors.New("channel not found")
+	c.ChannelName = Channels[channelName].ChannelName
+	c.ChannelUsers = Channels[channelName].ChannelUsers
+	
+	if c.ChannelName == "" {
+		return errors.New("channel not found")
+	}
+
+	return nil
 }
 
 func (c *Channel) InfoMessage() []byte {
@@ -141,24 +141,27 @@ func (c *Channel) Broadcast(message []byte, m *melody.Melody) {
 	})
 }
 
+func (c *Channel) BroadcastOther(s *melody.Session, message []byte, m *melody.Melody) {
+
+	m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
+
+		// return true if the session id is in channel users
+		return c.InChannel(q.Keys["id"].(string)) && q != s
+	})
+}
+
 func ChannelFirst(channelName string) (c Channel, err error) {
 
 	if channelExists(channelName) {
-		for _, c := range Channels {
-			if c.ChannelName == channelName {
-				return c, nil
-			}
-		}
+
+		return *Channels[channelName], nil
 	}
 
 	return c, errors.New("channel not found")
 }
 
 func channelExists(name string) bool {
-	for _, c := range Channels {
-		if c.ChannelName == name {
-			return true
-		}
-	}
-	return false
+
+	return Channels[name] != nil
+
 }

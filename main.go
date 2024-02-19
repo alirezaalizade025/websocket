@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/olahol/melody"
 
@@ -12,6 +13,11 @@ import (
 
 func main() {
 	m := melody.New()
+
+	m.Config.PingPeriod = 10 * time.Second
+
+	// log.Println(m.Config.PingPeriod)
+
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		m.HandleRequest(w, r)
@@ -33,30 +39,7 @@ func main() {
 
 		client := models.FindByID(s.Keys["id"].(string))
 
-		clientChannels := client.Channels
-		for _, channelName := range clientChannels {
-			channel, err := models.ChannelFirst(channelName)
-			if err != nil {
-				continue
-			}
-
-			channel.Leave(s.Keys["id"].(string))
-
-			// // ---- leave broadcast -----
-			// message, err := json.Marshal(models.Message{
-			// 	Username:    client.Username,
-			// 	ChannelName: channelName,
-			// 	Action:      "disconnect",
-			// })
-			// if err != nil {
-			// 	log.Panicln(err)
-			// }
-			// channel.Broadcast(message, m)
-
-			// ---- channel info broadcast -----
-			channel.Broadcast(channel.InfoMessage(), m)
-		}
-
+		client.LeaveAllChannels(m)
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
@@ -93,15 +76,13 @@ func main() {
 		// log.Println(models.Clients)
 
 		// get channel info
-		channelInfo := channel.InfoMessage()
-		// message to sender about channel info
-		// s.Write([]byte(channelInfo))
-		// m.Broadcast([]byte(channelInfo))
-		channel.Broadcast(channelInfo, m)
+		
 
 		if message.Action == "join" || message.Action == "leave" {
+			channelInfo := channel.InfoMessage()
+			channel.Broadcast(channelInfo, m)
 			return
-		}
+		} 
 
 		// json encode message
 		response, err := json.Marshal(message)
@@ -109,17 +90,21 @@ func main() {
 			log.Panicln(err)
 		}
 
-		// return message to sender
-		s.Write([]byte(response))
+		// // return message to sender
+		// s.Write([]byte(response))
 
-		// m.BroadcastOthers([]byte(response), s)
-
-		channel.Broadcast(response, m)
+		channel.BroadcastOther(s, response, m)
 	})
 
-	// m.HandlePong(func(s *melody.Session) {
-	// 	log.Println("Pong received")
-	// })
+	m.HandlePong(func(s *melody.Session) {
+
+		s.Write([]byte("Ping"))
+
+		
+
+		log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+	})
+
 
 	log.Println("Server started at :8000")
 	http.ListenAndServe(":8000", nil)
