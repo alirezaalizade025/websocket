@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+
+	"github.com/olahol/melody"
 )
 
 type Channel struct {
@@ -13,16 +15,16 @@ type Channel struct {
 
 var Channels = []Channel{}
 
-func (c *Channel) Join(username string, channelName string) {
+func (c *Channel) Join(id string) {
 
 	// append if not exists
 	for _, u := range c.ChannelUsers {
-		if u == username {
+		if u == id {
 			return
 		}
 	}
 
-	c.ChannelUsers = append(c.ChannelUsers, username)
+	c.ChannelUsers = append(c.ChannelUsers, id)
 
 	// set in Channels
 	for i, item := range Channels {
@@ -30,12 +32,19 @@ func (c *Channel) Join(username string, channelName string) {
 			Channels[i].ChannelUsers = c.ChannelUsers
 		}
 	}
+
+	// add channel to client channels
+	for i, item := range Clients {
+		if item.ID == id {
+			Clients[i].Channels = append(Clients[i].Channels, c.ChannelName)
+		}
+	}
 }
 
-func (c *Channel) Leave(username string, channelName string) {
+func (c *Channel) Leave(id string) {
 
 	for i, u := range c.ChannelUsers {
-		if u == username {
+		if u == id {
 			c.ChannelUsers = append(c.ChannelUsers[:i], c.ChannelUsers[i+1:]...)
 		}
 	}
@@ -47,6 +56,16 @@ func (c *Channel) Leave(username string, channelName string) {
 		}
 	}
 
+	// remove channel name from client channels
+	for i, item := range Clients {
+		if item.ID == id {
+			for j, ch := range Clients[i].Channels {
+				if ch == c.ChannelName {
+					Clients[i].Channels = append(Clients[i].Channels[:j], Clients[i].Channels[j+1:]...)
+				}
+			}
+		}
+	}
 }
 
 func (c *Channel) FirstOrCreate(channelName string) error {
@@ -75,11 +94,27 @@ func (c *Channel) FirstOrCreate(channelName string) error {
 
 func (c *Channel) InfoMessage() []byte {
 
+	var joinedUsernames []string
+
+	for _, id := range c.ChannelUsers {
+		user := FindByID(id)
+
+		if user.Username == "" {
+			// 	user.Username = id
+			panic("username not found")
+		}
+
+		joinedUsernames = append(joinedUsernames, user.Username)
+	}
+
 	info, err := json.Marshal(Message{
-		Username: "SERVER",
-		Channel:  c.ChannelName,
-		Action:   "channel_info",
-		Data:     c,
+		Username:    "SERVER",
+		ChannelName: c.ChannelName,
+		Action:      "channel_info",
+		Data: Channel{
+			ChannelName:  c.ChannelName,
+			ChannelUsers: joinedUsernames,
+		},
 	})
 
 	if err != nil {
@@ -88,7 +123,25 @@ func (c *Channel) InfoMessage() []byte {
 	return info
 }
 
-func channelFirst(channelName string) (c Channel, err error) {
+func (c *Channel) InChannel(id string) bool {
+	for _, u := range c.ChannelUsers {
+		if u == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Channel) Broadcast(message []byte, m *melody.Melody) {
+
+	m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
+
+		// return true if the session id is in channel users
+		return c.InChannel(q.Keys["id"].(string))
+	})
+}
+
+func ChannelFirst(channelName string) (c Channel, err error) {
 
 	if channelExists(channelName) {
 		for _, c := range Channels {

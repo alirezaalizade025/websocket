@@ -1,15 +1,18 @@
 package models
 
 import (
+	"errors"
+	// "log"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Client struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	ConnectAt string `json:"connect_at"`
+	ID        string   `json:"id"`
+	Username  string   `json:"username"`
+	ConnectAt string   `json:"connect_at"`
+	Channels  []string `json:"channels"`
 }
 
 var Clients = []Client{}
@@ -46,10 +49,44 @@ func NewClient() Client {
 	return client
 }
 
-func MatchUsernameWithID(id, username string) {
+func MatchUsernameWithID(id, username string) error {
+
+	if username == "" {
+		return nil
+	}
+
 	for i, client := range Clients {
 		if client.ID == id {
 			Clients[i].Username = username
+
+			return nil
 		}
 	}
+
+	return errors.New("Client not found")
+}
+
+func FindByUsername(username string) Client {
+	for _, client := range Clients {
+		if client.Username == username {
+			return client
+		}
+	}
+
+	return Client{}
+}
+
+func FindByID(id string) Client {
+	// log.Println(Clients)
+	for _, client := range Clients {
+
+		if client.ID == id {
+
+			return client
+		} else {
+			// log.Println(client.ID, id)
+		}
+	}
+
+	return Client{}
 }

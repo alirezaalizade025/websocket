@@ -10,7 +10,6 @@ import (
 	"socket/models"
 )
 
-
 func main() {
 	m := melody.New()
 
@@ -19,26 +18,45 @@ func main() {
 	})
 
 	m.HandleConnect(func(s *melody.Session) {
-		// ss, _ := m.Sessions()
-
-		s.Keys = make(map[string]interface{}) // Initialize the Keys map
-
-
 		client := models.NewClient()
 
-		s.Keys["id"] = client.ID
+		s.Keys = map[string]interface{}{"id": client.ID}
+
 	})
 
 	m.HandleDisconnect(func(s *melody.Session) {
-		// value, exists := s.Get("info")
 
-		// if !exists {
-		// 	return
-		// }
+		// if key is empty return
+		if s.Keys["id"] == nil {
+			return
+		}
 
-		// info := value.(*GopherInfo)
+		client := models.FindByID(s.Keys["id"].(string))
 
-		// m.BroadcastOthers([]byte("dis "+info.ID), s)
+		clientChannels := client.Channels
+		for _, channelName := range clientChannels {
+			channel, err := models.ChannelFirst(channelName)
+			if err != nil {
+				continue
+			}
+
+			channel.Leave(s.Keys["id"].(string))
+
+			// // ---- leave broadcast -----
+			// message, err := json.Marshal(models.Message{
+			// 	Username:    client.Username,
+			// 	ChannelName: channelName,
+			// 	Action:      "disconnect",
+			// })
+			// if err != nil {
+			// 	log.Panicln(err)
+			// }
+			// channel.Broadcast(message, m)
+
+			// ---- channel info broadcast -----
+			channel.Broadcast(channel.InfoMessage(), m)
+		}
+
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
@@ -50,37 +68,42 @@ func main() {
 			return
 		}
 
-		// log.Println(s.Keys)
-		log.Println(message)
-
 		// find channel
 		channel := models.Channel{}
-		err := channel.FirstOrCreate(message.Channel)
+		err := channel.FirstOrCreate(message.ChannelName)
 		if err != nil {
 			log.Panicln(err)
 			return
 		}
 
+		models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
+
 		// handle action of message
 		if message.Action == "join" {
-			channel.Join(message.Username, message.Channel)
+
+			channel.Join(s.Keys["id"].(string))
 
 			// match username with id
-			models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
 		} else if message.Action == "leave" {
-			channel.Leave(message.Username, message.Channel)
+
+			channel.Leave(s.Keys["id"].(string))
+
 		}
 
-		log.Println(models.Clients)
+		// log.Println(models.Clients)
 
 		// get channel info
 		channelInfo := channel.InfoMessage()
 		// message to sender about channel info
-		s.Write([]byte(channelInfo))
-		m.Broadcast([]byte(channelInfo))
+		// s.Write([]byte(channelInfo))
+		// m.Broadcast([]byte(channelInfo))
+		channel.Broadcast(channelInfo, m)
 
+		if message.Action == "join" || message.Action == "leave" {
+			return
+		}
 
-		// json encode message 
+		// json encode message
 		response, err := json.Marshal(message)
 		if err != nil {
 			log.Panicln(err)
@@ -89,8 +112,14 @@ func main() {
 		// return message to sender
 		s.Write([]byte(response))
 
-		m.BroadcastOthers([]byte(response), s)
+		// m.BroadcastOthers([]byte(response), s)
+
+		channel.Broadcast(response, m)
 	})
+
+	// m.HandlePong(func(s *melody.Session) {
+	// 	log.Println("Pong received")
+	// })
 
 	log.Println("Server started at :8000")
 	http.ListenAndServe(":8000", nil)
