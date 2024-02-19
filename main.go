@@ -3,24 +3,26 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 
 	"socket/models"
 )
 
 func main() {
+	r := gin.New()
 	m := melody.New()
 
-	m.Config.PingPeriod = 10 * time.Second
+	m.Config.PingPeriod = 1 * time.Second
+	m.Config.PongWait = 10 * time.Second
 
 	// log.Println(m.Config.PingPeriod)
 
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		m.HandleRequest(w, r)
+	r.GET("/ws", func(c *gin.Context) {
+		m.HandleRequest(c.Writer, c.Request)
 	})
 
 	m.HandleConnect(func(s *melody.Session) {
@@ -96,16 +98,12 @@ func main() {
 		channel.BroadcastOther(s, response, m)
 	})
 
-	m.HandlePong(func(s *melody.Session) {
-
-		s.Write([]byte("Ping"))
-
-		
-
-		log.Println("Pong received", s.IsClosed(), s.Keys["id"])
-	})
+	// m.HandlePong(func(s *melody.Session) {
 
 
-	log.Println("Server started at :8000")
-	http.ListenAndServe(":8000", nil)
+	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+	// })
+
+
+	r.Run(":8000")
 }
