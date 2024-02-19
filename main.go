@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/olahol/melody"
 
 	"socket/models"
@@ -22,14 +21,12 @@ func main() {
 	m.HandleConnect(func(s *melody.Session) {
 		// ss, _ := m.Sessions()
 
-		id := uuid.NewString()
-
-		// s.Write([]byte("iam " + s.Request.URL.Query().Get("username")))
-		log.Println(id + " connected")
-
 		s.Keys = make(map[string]interface{}) // Initialize the Keys map
 
-		s.Keys["id"] = id
+
+		client := models.NewClient()
+
+		s.Keys["id"] = client.ID
 	})
 
 	m.HandleDisconnect(func(s *melody.Session) {
@@ -53,7 +50,7 @@ func main() {
 			return
 		}
 
-		log.Println(s.Keys)
+		// log.Println(s.Keys)
 		log.Println(message)
 
 		// find channel
@@ -67,9 +64,14 @@ func main() {
 		// handle action of message
 		if message.Action == "join" {
 			channel.Join(message.Username, message.Channel)
+
+			// match username with id
+			models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
 		} else if message.Action == "leave" {
 			channel.Leave(message.Username, message.Channel)
 		}
+
+		log.Println(models.Clients)
 
 		// get channel info
 		channelInfo := channel.InfoMessage()
