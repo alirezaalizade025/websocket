@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 
+	"socket/controllers"
 	"socket/models"
 )
 
@@ -23,6 +24,10 @@ func main() {
 
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
+	})
+
+	r.POST("/broadcast", func(c *gin.Context) {
+		controllers.Broadcast(c, m)
 	})
 
 	m.HandleConnect(func(s *melody.Session) {

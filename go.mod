@@ -2,7 +2,7 @@ module socket
 
 go 1.18
 
-require github.com/gorilla/mux v1.8.0
+require github.com/go-playground/validator/v10 v10.11.2
 
 require (
 	github.com/bytedance/sonic v1.8.0 // indirect
@@ -10,7 +10,6 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.11.2 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
@@ -32,11 +31,7 @@ require (
 
 require (
 	github.com/gin-gonic/gin v1.9.0
-	github.com/go-redis/redis v6.15.9+incompatible // indirect
-	github.com/gofrs/uuid v4.0.0+incompatible // indirect
-	github.com/gomodule/redigo v1.8.4 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/joho/godotenv v1.4.0
 	github.com/olahol/melody v1.1.3
 )
