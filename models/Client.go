@@ -13,6 +13,7 @@ type Client struct {
 	ID        string   `json:"id"`
 	Username  string   `json:"username"`
 	ConnectAt string   `json:"connect_at"`
+	Avatar    string   `json:"avatar"`
 	Channels  []string `json:"channels"`
 }
 
@@ -78,6 +79,37 @@ func (client Client) LeaveAllChannels(m *melody.Melody) {
 	}
 }
 
+func (client Client) ActiveAllChannels(m *melody.Melody, s *melody.Session) {
+	clientChannels := client.Channels
+	for _, channelName := range clientChannels {
+		channel, err := ChannelFirst(channelName)
+		if err != nil {
+			continue
+		}
+
+		channel.ActiveClient(client.ID)
+
+		// ---- channel info broadcast -----
+		channel.BroadcastOther(s, channel.InfoMessage(), m)
+	}
+}
+
+func (client Client) InactiveAllChannels(m *melody.Melody, s *melody.Session) {
+	clientChannels := client.Channels
+	for _, channelName := range clientChannels {
+		channel, err := ChannelFirst(channelName)
+		if err != nil {
+			continue
+		}
+
+		channel.InactiveClient(client.ID)
+
+		// ---- channel info broadcast -----
+		channel.BroadcastOther(s, channel.InfoMessage(), m)
+	}
+}
+
+
 func MatchUsernameWithID(id, username string) error {
 
 	if username == "" {
@@ -88,7 +120,6 @@ func MatchUsernameWithID(id, username string) error {
 		Clients[id].Username = username
 		return nil
 	}
-
 
 	return errors.New("Client not found")
 }

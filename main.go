@@ -21,7 +21,6 @@ func main() {
 
 	// log.Println(m.Config.PingPeriod)
 
-
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
 	})
@@ -58,6 +57,17 @@ func main() {
 			return
 		}
 
+		switch message.Action {
+		case "active":
+			client := models.FindByID(s.Keys["id"].(string))
+			client.ActiveAllChannels(m, s)
+			return
+		case "inactive":
+			client := models.FindByID(s.Keys["id"].(string))
+			client.InactiveAllChannels(m, s)
+			return
+		}
+
 		// find channel
 		channel := models.Channel{}
 		err := channel.FirstOrCreate(message.ChannelName)
@@ -69,27 +79,22 @@ func main() {
 		models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
 
 		// handle action of message
-		if message.Action == "join" {
-
+		switch message.Action {
+		case "join":
 			channel.Join(s.Keys["id"].(string))
 
-			// match username with id
-		} else if message.Action == "leave" {
-
-			channel.Leave(s.Keys["id"].(string))
-
-		}
-
-		// log.Println(models.Clients)
-
-		// get channel info
-		
-
-		if message.Action == "join" || message.Action == "leave" {
 			channelInfo := channel.InfoMessage()
 			channel.Broadcast(channelInfo, m)
 			return
-		} 
+
+		case "leave":
+			channel.Leave(s.Keys["id"].(string))
+
+			channelInfo := channel.InfoMessage()
+			channel.Broadcast(channelInfo, m)
+			return
+		}
+
 
 		// json encode message
 		response, err := json.Marshal(message)
@@ -97,7 +102,7 @@ func main() {
 			log.Panicln(err)
 		}
 
-		// // return message to sender
+		// return message to sender
 		// s.Write([]byte(response))
 
 		channel.BroadcastOther(s, response, m)
@@ -105,10 +110,8 @@ func main() {
 
 	// m.HandlePong(func(s *melody.Session) {
 
-
 	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
 	// })
-
 
 	r.Run(":8000")
 }

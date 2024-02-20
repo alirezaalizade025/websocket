@@ -46,8 +46,7 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 		return
 	}
 
-
-
+ 
 	// generate message
 	message, err := json.Marshal(models.Message{
 		Username:    "BROADCAST",
