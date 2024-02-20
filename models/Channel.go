@@ -13,9 +13,16 @@ type Channel struct {
 	ChannelClients []ChannelClient `json:"users"`
 }
 
+type Status string
+
+const (
+	Active   Status = "active"
+	Inactive Status = "inactive"
+)
+
 type ChannelClient struct {
 	ID     string `json:"id"`
-	Status string `json:"status"`
+	Status Status `json:"status"`
 }
 
 var Channels = map[string]*Channel{}
@@ -31,7 +38,7 @@ func (c *Channel) Join(id string) {
 
 	c.ChannelClients = append(c.ChannelClients, ChannelClient{
 		ID:     id,
-		Status: "active",
+		Status: Active,
 	})
 
 	Channels[c.ChannelName] = &Channel{
@@ -84,7 +91,7 @@ func (c *Channel) ActiveClient(id string) {
 
 	for i, ChannelClient := range c.ChannelClients {
 		if ChannelClient.ID == id {
-			c.ChannelClients[i].Status = "active" 
+			c.ChannelClients[i].Status = Active
 		}
 	}
 
@@ -93,16 +100,6 @@ func (c *Channel) ActiveClient(id string) {
 		ChannelClients: c.ChannelClients,
 	}
 
-	// remove channel name from client channels
-	for i, item := range Clients {
-		if item.ID == id {
-			for j, ch := range Clients[i].Channels {
-				if ch == c.ChannelName {
-					Clients[i].Channels = append(Clients[i].Channels[:j], Clients[i].Channels[j+1:]...)
-				}
-			}
-		}
-	}
 }
 
 func (c *Channel) InactiveClient(id string) {
@@ -113,24 +110,13 @@ func (c *Channel) InactiveClient(id string) {
 
 	for i, ChannelClient := range c.ChannelClients {
 		if ChannelClient.ID == id {
-			c.ChannelClients[i].Status = "inactive" 
+			c.ChannelClients[i].Status = Inactive
 		}
 	}
 
 	Channels[c.ChannelName] = &Channel{
 		ChannelName:    c.ChannelName,
 		ChannelClients: c.ChannelClients,
-	}
-
-	// remove channel name from client channels
-	for i, item := range Clients {
-		if item.ID == id {
-			for j, ch := range Clients[i].Channels {
-				if ch == c.ChannelName {
-					Clients[i].Channels = append(Clients[i].Channels[:j], Clients[i].Channels[j+1:]...)
-				}
-			}
-		}
 	}
 }
 
@@ -178,7 +164,7 @@ func (c *Channel) InfoMessage() []byte {
 	}
 
 	type Data struct {
-		ChannelName    string                   `json:"channel_name"`
+		// ChannelName    string                   `json:"channel_name"`
 		ChannelClients []map[string]interface{} `json:"users"`
 	}
 
@@ -187,7 +173,7 @@ func (c *Channel) InfoMessage() []byte {
 		ChannelName: c.ChannelName,
 		Action:      "channel_info",
 		Data: Data{
-			ChannelName:    c.ChannelName,
+			// ChannelName:    c.ChannelName,
 			ChannelClients: joinedUsernames,
 		},
 	})
@@ -200,7 +186,7 @@ func (c *Channel) InfoMessage() []byte {
 
 func (c *Channel) InChannel(id string) bool {
 	for _, u := range c.ChannelClients {
-		if u.ID == id {
+		if u.ID == id && u.Status == Active {
 			return true
 		}
 	}

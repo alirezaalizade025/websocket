@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"time"
+	// "time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
@@ -16,10 +16,9 @@ func main() {
 	r := gin.New()
 	m := melody.New()
 
-	m.Config.PingPeriod = 1 * time.Second
-	m.Config.PongWait = 10 * time.Second
+	// m.Config.PingPeriod = 9 * time.Second
+	// m.Config.PongWait = 10 * time.Second
 
-	// log.Println(m.Config.PingPeriod)
 
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
@@ -30,6 +29,7 @@ func main() {
 	})
 
 	m.HandleConnect(func(s *melody.Session) {
+
 		client := models.NewClient()
 
 		s.Keys = map[string]interface{}{"id": client.ID}
@@ -46,6 +46,8 @@ func main() {
 		client := models.FindByID(s.Keys["id"].(string))
 
 		client.LeaveAllChannels(m)
+
+		// log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
@@ -108,10 +110,39 @@ func main() {
 		channel.BroadcastOther(s, response, m)
 	})
 
-	// m.HandlePong(func(s *melody.Session) {
+	m.HandlePong(func(s *melody.Session) {
 
-	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+		log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+
+	})
+
+	// m.HandleSentMessage(func(s *melody.Session, msg []byte) {
+
+	// 	log.Println("Sent message", string(msg))
 	// })
+
+
+	// ticker := time.NewTicker(m.Config.PingPeriod)
+
+	// go func() {
+	// 	for range ticker.C {
+	// 		m.Broadcast([]byte("ping"))
+	// 	}
+	// }()
+
+	// m.HandlePong(func(s *melody.Session) {
+	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+
+	// })
+
+	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
+
+	// 	log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
+	// 	return nil
+
+	// })
+
+
 
 	r.Run(":8000")
 }
