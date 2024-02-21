@@ -123,21 +123,21 @@ func main() {
 		channel.BroadcastOther(s, response, m)
 	})
 
-	m.HandlePong(func(s *melody.Session) {
+	// m.HandlePong(func(s *melody.Session) {
 
-		log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
 
-	})
+	// })
 
-	m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
+	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
 
-		// log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
-		return nil
-	})
+	// 	// log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
+	// 	return nil
+	// })
 
-	m.HandleError(func(s *melody.Session, err error) {
-		log.Println("Session error", err)
-	})
+	// m.HandleError(func(s *melody.Session, err error) {
+	// 	log.Println("Session error", err)
+	// })
 
 	// m.HandleSentMessage(func(s *melody.Session, msg []byte) {
 
