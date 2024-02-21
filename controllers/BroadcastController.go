@@ -59,7 +59,7 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 		},
 	})
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 	}
 
 	// find receivers

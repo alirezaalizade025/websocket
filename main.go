@@ -31,7 +31,7 @@ func main() {
 
 	r.POST("/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
 		controllers.Broadcast(c, m)
-	}, )
+	})
 
 	m.HandleConnect(func(s *melody.Session) {
 
@@ -60,7 +60,7 @@ func main() {
 		// decode message
 		message := models.Message{}
 		if err := message.Decode(msg); err != nil {
-			log.Panicln(err)
+			log.Println(err)
 			return
 		}
 
