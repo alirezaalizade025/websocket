@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"socket/models"
+	"socket/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -12,47 +13,44 @@ import (
 )
 
 type BroadCastStoreRequest struct {
-	ChannelName string `json:"channel_name" form:"channel_name" binding:"omitempty,max=255"`
-	Message     string `json:"message" form:"message" binding:"omitempty,max=255"`
-	Action      string `json:"action" form:"action" binding:"omitempty,max=50"`
-	Data        string `json:"data" form:"data" binding:"omitempty,max=1000"`
-	Type        string `json:"type" form:"type" binding:"omitempty,max=50"`
-	AutoClose   int    `json:"auto_close" form:"auto_close" binding:"omitempty,max=10000"`
+	Message   string   `json:"message" form:"message" binding:"omitempty,max=255"`
+	Action    string   `json:"action" form:"action" binding:"required,max=50"`
+	Data      string   `json:"data" form:"data" binding:"omitempty,max=1000"`
+	Type      string   `json:"type" form:"type" binding:"omitempty,max=50"`
+	AutoClose int      `json:"auto_close" form:"auto_close" binding:"omitempty,max=10000"`
+	Receivers []string `json:"receivers" form:"receivers" binding:"omitempty"`
 }
 
 func Broadcast(c *gin.Context, m *melody.Melody) {
 
 	// validation with gin
 	request := &BroadCastStoreRequest{
-		ChannelName: c.PostForm("channel_name"),
-		Message:     c.PostForm("message"),
-		Action:      c.PostForm("action"), // todo: null check
-		Data:        c.PostForm("data"),
+		Message:   c.PostForm("message"),
+		Action:    c.PostForm("action"), // todo: null check
+		Data:      c.PostForm("data"),
+		Type:      c.PostForm("type"),
+		AutoClose: 0,
+		Receivers: []string{},
 	}
 
 	if err := c.ShouldBind(&request); err != nil {
 		c.JSON(422, gin.H{
 			"errors": translateError(err),
 		})
-
 		return
 	}
 
-	// find channel
-	if request.ChannelName != "" {
-		channel := models.Channel{}
-		err := channel.FirstOrCreate(request.ChannelName)
-		if err != nil {
-			c.JSON(422, gin.H{
-				"errors": "Channel not found",
-			})
-			return
-		}
+	var validActions = []string{"message", "toast"}
+	if !utils.Contains(validActions, request.Action) {
+		c.JSON(422, gin.H{
+			"errors": "Invalid action",
+		})
+		return
 	}
 
 	// generate message
 	message, err := json.Marshal(models.Message{
-		ChannelName: request.ChannelName,
+		ChannelName: "API",
 		Action:      request.Action,
 		Data: map[string]interface{}{
 			"message":    request.Message,
@@ -60,14 +58,32 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 			"auto_close": request.AutoClose,
 		},
 	})
-
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	m.Broadcast(message)
+	// find receivers
+	if len(request.Receivers) > 0 {
 
-	// channel.Broadcast(message, m)
+		var receiversIds []string
+
+		for _, receiver := range request.Receivers {
+			client := models.FindByUsername(receiver)
+			if client.ID != "" {
+				receiversIds = append(receiversIds, client.ID)
+			}
+		}
+
+		m.BroadcastFilter(message, func(s *melody.Session) bool {
+			return utils.Contains(receiversIds, s.Keys["id"].(string))
+		})
+
+	} else {
+
+		m.Broadcast(message)
+
+	}
+
 }
 
 // translateError is a helper function to translate error from validator

@@ -29,9 +29,9 @@ func main() {
 		m.HandleRequest(c.Writer, c.Request)
 	})
 
-	r.POST("/broadcast", func(c *gin.Context) {
+	r.POST("/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
 		controllers.Broadcast(c, m)
-	}, middlewares.BasicAuth)
+	}, )
 
 	m.HandleConnect(func(s *melody.Session) {
 
@@ -129,6 +129,16 @@ func main() {
 
 	})
 
+	m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
+
+		// log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
+		return nil
+	})
+
+	m.HandleError(func(s *melody.Session, err error) {
+		log.Println("Session error", err)
+	})
+
 	// m.HandleSentMessage(func(s *melody.Session, msg []byte) {
 
 	// 	log.Println("Sent message", string(msg))
@@ -144,13 +154,6 @@ func main() {
 
 	// m.HandlePong(func(s *melody.Session) {
 	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
-
-	// })
-
-	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
-
-	// 	log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
-	// 	return nil
 
 	// })
 
