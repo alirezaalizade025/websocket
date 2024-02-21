@@ -12,12 +12,12 @@ import (
 	"socket/controllers"
 	"socket/middlewares"
 	"socket/models"
-	"socket/utils"
+	// "socket/utils"
 )
 
 func main() {
 
-	utils.LoadDotEnv()
+	// utils.LoadDotEnv()
 
 	r := gin.New()
 	m := melody.New()
