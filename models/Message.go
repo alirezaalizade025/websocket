@@ -5,7 +5,6 @@ import (
 )
 
 type Message struct {
-	Username    string      `json:"username"`
 	ChannelName string      `json:"channel"`
 	Action      string      `json:"action"`
 	Data        interface{} `json:"data"`

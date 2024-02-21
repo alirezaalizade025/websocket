@@ -49,7 +49,6 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
  
 	// generate message
 	message, err := json.Marshal(models.Message{
-		Username:    "BROADCAST",
 		ChannelName: request.ChannelName,
 		Action:      request.Action,
 		Data:        request.Data,

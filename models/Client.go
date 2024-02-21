@@ -1,8 +1,9 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
-	// "log"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,6 +52,38 @@ func NewClient() Client {
 	Clients[client.ID] = &client
 
 	return client
+}
+
+func (client *Client) UpdateClient(data Message) {
+
+	if data.Data == "" {
+		return
+	}
+
+	clientData := data.Data.(map[string]interface{})
+
+	if clientData["username"] != nil {
+		client.Username = clientData["username"].(string)
+	}
+
+	if clientData["avatar"] != nil {
+		client.Avatar = clientData["avatar"].(string)
+	}
+
+	Clients[client.ID] = client
+}
+
+func (c *Client) InitMessage() []byte {
+
+	info, err := json.Marshal(map[string]string{
+		"action": "client_initd",
+	})
+
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	return info
 }
 
 func (client Client) LeaveAllChannels(m *melody.Melody) {

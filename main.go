@@ -59,6 +59,15 @@ func main() {
 			return
 		}
 
+		if message.Action == "init" {
+			client := models.FindByID(s.Keys["id"].(string))
+			client.UpdateClient(message)
+
+			s.Write([]byte(client.InitMessage()))
+
+			return
+		}
+
 		switch message.Action {
 		case "active":
 			client := models.FindByID(s.Keys["id"].(string))
@@ -78,7 +87,7 @@ func main() {
 			return
 		}
 
-		models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
+		// models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
 
 		// handle action of message
 		switch message.Action {
