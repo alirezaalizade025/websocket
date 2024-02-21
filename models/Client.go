@@ -20,6 +20,8 @@ type Client struct {
 
 var Clients = map[string]*Client{}
 
+var AdminClient = Client{}
+
 // GenerateID generates a unique ID for the client.
 // It assigns the generated ID to the client's ID field.
 // If the generated ID is already used by another client, it recursively calls itself to generate a new ID.
@@ -73,10 +75,34 @@ func (client *Client) UpdateClient(data Message) {
 	Clients[client.ID] = client
 }
 
+func (client *Client) InitAdmin() {
+
+	// // remove from clients
+	// delete(Clients, client.ID)
+
+	AdminClient = Client{
+		ID:        client.ID,
+		Username:  "Admin",
+	}
+}
+
 func (c *Client) InitMessage() []byte {
 
 	info, err := json.Marshal(map[string]string{
 		"action": "client_initd",
+	})
+
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	return info
+}
+
+func (c *Client) AdminInitMessage() []byte {
+
+	info, err := json.Marshal(map[string]string{
+		"action": "admin_initd",
 	})
 
 	if err != nil {

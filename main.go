@@ -73,6 +73,21 @@ func main() {
 			return
 		}
 
+		if message.Action == "init_admin" {
+			client := models.FindByID(s.Keys["id"].(string))
+			
+			client.InitAdmin()
+
+			s.Write([]byte(client.AdminInitMessage()))
+
+			for _, channel := range models.Channels {
+				s.Write([]byte(channel.InfoMessage()))
+				
+			}
+
+			return
+		}
+
 		switch message.Action {
 		case "active":
 			client := models.FindByID(s.Keys["id"].(string))
@@ -104,7 +119,7 @@ func main() {
 			return
 
 		case "leave":
-			channel.Leave(s.Keys["id"].(string))
+			channel.Leave(s.Keys["id"].(string)) // todo: delete from clients
 
 			channelInfo := channel.InfoMessage()
 			channel.Broadcast(channelInfo, m)

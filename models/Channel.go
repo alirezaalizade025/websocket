@@ -81,6 +81,17 @@ func (c *Channel) Leave(id string) {
 			}
 		}
 	}
+
+	if len(c.ChannelClients) == 0 {
+		c.RemoveChannel()
+	}
+}
+
+func (c *Channel) RemoveChannel(){
+
+	// remove channel from channels
+	delete(Channels, c.ChannelName)
+	
 }
 
 func (c *Channel) ActiveClient(id string) {
@@ -197,7 +208,7 @@ func (c *Channel) Broadcast(message []byte, m *melody.Melody) {
 	m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
 
 		// return true if the session id is in channel users
-		return c.InChannel(q.Keys["id"].(string))
+		return c.InChannel(q.Keys["id"].(string)) || q.Keys["id"].(string) == AdminClient.ID
 	})
 }
 
