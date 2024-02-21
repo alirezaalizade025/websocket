@@ -217,7 +217,7 @@ func (c *Channel) BroadcastOther(s *melody.Session, message []byte, m *melody.Me
 	m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
 
 		// return true if the session id is in channel users
-		return c.InChannel(q.Keys["id"].(string)) && q != s
+		return (c.InChannel(q.Keys["id"].(string)) && q != s) || q.Keys["id"].(string) == AdminClient.ID
 	})
 }
 
