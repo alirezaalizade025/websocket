@@ -3,22 +3,27 @@ package main
 import (
 	"encoding/json"
 	"log"
+
 	// "time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 
 	"socket/controllers"
+	"socket/middlewares"
 	"socket/models"
+	"socket/utils"
 )
 
 func main() {
+
+	utils.LoadDotEnv()
+
 	r := gin.New()
 	m := melody.New()
 
 	// m.Config.PingPeriod = 9 * time.Second
 	// m.Config.PongWait = 10 * time.Second
-
 
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
@@ -26,7 +31,7 @@ func main() {
 
 	r.POST("/broadcast", func(c *gin.Context) {
 		controllers.Broadcast(c, m)
-	})
+	}, middlewares.BasicAuth)
 
 	m.HandleConnect(func(s *melody.Session) {
 
@@ -106,7 +111,6 @@ func main() {
 			return
 		}
 
-
 		// json encode message
 		response, err := json.Marshal(message)
 		if err != nil {
@@ -130,7 +134,6 @@ func main() {
 	// 	log.Println("Sent message", string(msg))
 	// })
 
-
 	// ticker := time.NewTicker(m.Config.PingPeriod)
 
 	// go func() {
@@ -150,8 +153,6 @@ func main() {
 	// 	return nil
 
 	// })
-
-
 
 	r.Run(":8000")
 }
