@@ -19,7 +19,7 @@ func main() {
 
 	// utils.LoadDotEnv()
 
-	r := gin.New()
+	r := gin.Default()
 	m := melody.New()
 
 	// m.Config.PingPeriod = 9 * time.Second
