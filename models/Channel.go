@@ -248,13 +248,15 @@ func (c *Channel) InfoMessage() []byte {
 	// 	})
 	// }
 
-	for _, item := range ChannelClients {
+	for i, item := range ChannelClients {
 		if item.ChannelID == c.ID {
 			client := FindByID(item.ClientID)
 
 			if client.Username == "" {
 				// 	user.Username = id
-				panic("username not found")
+				ChannelClients = append(ChannelClients[:i], ChannelClients[i+1:]...)
+
+				log.Panic("username not found")
 			}
 
 			joinedUsernames = append(joinedUsernames, map[string]interface{}{
