@@ -57,7 +57,7 @@ func main() {
 
 		s.Close()
 
-		log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
+		// log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
