@@ -24,15 +24,7 @@ type BroadCastStoreRequest struct {
 func Broadcast(c *gin.Context, m *melody.Melody) {
 
 	// validation with gin
-	request := &BroadCastStoreRequest{
-		Message:   c.PostForm("message"),
-		Action:    c.PostForm("action"), // todo: null check
-		Data:      c.PostForm("data"),
-		Type:      c.PostForm("type"),
-		AutoClose: 0,
-		Receivers: []string{},
-	}
-
+	request := &BroadCastStoreRequest{}
 	if err := c.ShouldBind(&request); err != nil {
 		c.JSON(422, gin.H{
 			"errors": translateError(err),

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	// "time"
 
@@ -22,8 +23,8 @@ func main() {
 	r := gin.Default()
 	m := melody.New()
 
-	// m.Config.PingPeriod = 9 * time.Second
-	// m.Config.PongWait = 10 * time.Second
+	m.Config.PingPeriod = 5 * time.Second
+	// m.Config.PongWait = 4 * time.Second
 
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
@@ -52,7 +53,11 @@ func main() {
 
 		client.LeaveAllChannels(m)
 
-		// log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
+		client.Delete()
+
+		s.Close()
+
+		log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
@@ -61,6 +66,10 @@ func main() {
 		message := models.Message{}
 		if err := message.Decode(msg); err != nil {
 			log.Println(err)
+			return
+		}
+
+		if message.Action == "pong" {
 			return
 		}
 
@@ -75,15 +84,21 @@ func main() {
 
 		if message.Action == "init_admin" {
 			client := models.FindByID(s.Keys["id"].(string))
-			
+
 			client.InitAdmin()
 
 			s.Write([]byte(client.AdminInitMessage()))
 
-			for _, channel := range models.Channels {
+			// for _, channel := range models.Channels {
+			// s.Write([]byte(channel.InfoMessage()))
+
+			// }
+
+			models.Channels.Range(func(key, value interface{}) bool {
+				channel := value.(*models.Channel)
 				s.Write([]byte(channel.InfoMessage()))
-				
-			}
+				return true
+			})
 
 			return
 		}
@@ -132,42 +147,43 @@ func main() {
 			log.Panicln(err)
 		}
 
-		// return message to sender
-		// s.Write([]byte(response))
-
 		channel.BroadcastOther(s, response, m)
 	})
 
-	// m.HandlePong(func(s *melody.Session) {
-
-	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
-
-	// })
-
 	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
 
-	// 	// log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
+	// 	log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
 	// 	return nil
 	// })
 
-	// m.HandleError(func(s *melody.Session, err error) {
-	// 	log.Println("Session error", err)
-	// })
+	m.HandleError(func(s *melody.Session, err error) {
+		log.Println("Session error", err)
+	})
 
 	// m.HandleSentMessage(func(s *melody.Session, msg []byte) {
 
 	// 	log.Println("Sent message", string(msg))
 	// })
 
-	// ticker := time.NewTicker(m.Config.PingPeriod)
+	ticker := time.NewTicker(m.Config.PingPeriod)
 
-	// go func() {
-	// 	for range ticker.C {
-	// 		m.Broadcast([]byte("ping"))
-	// 	}
-	// }()
+	go func() {
+		for range ticker.C {
+
+			ping, err := json.Marshal(map[string]string{
+				"action": "ping",
+			})
+
+			if err != nil {
+				log.Panicln(err)
+			}
+
+			m.Broadcast([]byte(ping))
+		}
+	}()
 
 	// m.HandlePong(func(s *melody.Session) {
+
 	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
 
 	// })
