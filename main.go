@@ -33,7 +33,7 @@ func main() {
 		ws.HandleRequest(c.Writer, c.Request)
 	})
 
-	r.POST("/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
+	r.POST("api/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
 		controllers.Broadcast(c, ws)
 	})
 
