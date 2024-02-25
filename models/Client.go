@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -11,14 +12,14 @@ import (
 )
 
 type Client struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	ConnectAt string `json:"connect_at"`
-	Avatar    string `json:"avatar"`
-	// Channels  []string `json:"channels"`
+	ID        string     `json:"id"`
+	Username  string     `json:"username"`
+	ConnectAt time.Time  `json:"connect_at"`
+	Avatar    string     `json:"avatar"`
+	PingAt    *time.Time `json:"ping_at"`
 }
 
-var Clients sync.Map
+var Clients = &sync.Map{}
 
 var AdminClient = Client{}
 
@@ -51,18 +52,35 @@ func GenerateID() string {
 // It generates a unique ID for the client and sets the ConnectAt field to the current timestamp.
 // The client is then added to the Clients slice.
 // Returns the newly created client.
-func NewClient() Client {
-	client := Client{
+func NewClient() *Client {
+	client := &Client{
 		ID:        GenerateID(),
-		ConnectAt: time.Now().Format(time.RFC3339), // Set ConnectAt to current timestamp
+		ConnectAt: time.Now(), // Set ConnectAt to current timestamp
 	}
 
 	// Clients = append(Clients, client)
 
 	// Clients[client.ID] = &client
-	Clients.Store(client.ID, &client)
+	Clients.Store(client.ID, client)
 
 	return client
+}
+
+func (client *Client) GetSession(m *melody.Melody) (*melody.Session, error) {
+	sessions, err := m.Sessions()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	for _, session := range sessions {
+		if session.Keys["id"] == client.ID {
+
+			return session, nil
+		}
+	}
+
+	return nil, errors.New("session not found")
 }
 
 func (client *Client) Delete() {
@@ -270,8 +288,6 @@ func FindByID(id string) Client {
 	if client, ok := Clients.Load(id); ok {
 		return *client.(*Client)
 	}
-
-
 
 	return Client{}
 }

@@ -16,33 +16,38 @@ import (
 	// "socket/utils"
 )
 
+const (
+	PingPeriod  = 10 * time.Second
+	PongTimeOut = 8 * PingPeriod / 10
+)
+
+var ws = melody.New()
+
 func main() {
 
 	// utils.LoadDotEnv()
 
 	r := gin.Default()
-	m := melody.New()
-
-	m.Config.PingPeriod = 5 * time.Second
-	// m.Config.PongWait = 4 * time.Second
 
 	r.GET("/ws", func(c *gin.Context) {
-		m.HandleRequest(c.Writer, c.Request)
+		ws.HandleRequest(c.Writer, c.Request)
 	})
 
 	r.POST("/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
-		controllers.Broadcast(c, m)
+		controllers.Broadcast(c, ws)
 	})
 
-	m.HandleConnect(func(s *melody.Session) {
+	ws.HandleConnect(func(s *melody.Session) {
 
 		client := models.NewClient()
 
-		s.Keys = map[string]interface{}{"id": client.ID}
+		// s.Keys = map[string]interface{}{"id": client.ID}
+		s.Set("id", client.ID)
 
+		go ping(s)
 	})
 
-	m.HandleDisconnect(func(s *melody.Session) {
+	ws.HandleDisconnect(func(s *melody.Session) {
 
 		// if key is empty return
 		if s.Keys["id"] == nil {
@@ -51,16 +56,14 @@ func main() {
 
 		client := models.FindByID(s.Keys["id"].(string))
 
-		client.LeaveAllChannels(m)
+		client.LeaveAllChannels(ws)
 
 		client.Delete()
 
 		s.Close()
-
-		// log.Println("Session disconnected", s.IsClosed(), s.Keys["id"])
 	})
 
-	m.HandleMessage(func(s *melody.Session, msg []byte) {
+	ws.HandleMessage(func(s *melody.Session, msg []byte) {
 
 		// decode message
 		message := models.Message{}
@@ -70,6 +73,7 @@ func main() {
 		}
 
 		if message.Action == "pong" {
+			pong(s)
 			return
 		}
 
@@ -89,11 +93,6 @@ func main() {
 
 			s.Write([]byte(client.AdminInitMessage()))
 
-			// for _, channel := range models.Channels {
-			// s.Write([]byte(channel.InfoMessage()))
-
-			// }
-
 			models.Channels.Range(func(key, value interface{}) bool {
 				channel := value.(*models.Channel)
 				s.Write([]byte(channel.InfoMessage()))
@@ -106,11 +105,11 @@ func main() {
 		switch message.Action {
 		case "active":
 			client := models.FindByID(s.Keys["id"].(string))
-			client.ActiveAllChannels(m, s)
+			client.ActiveAllChannels(ws, s)
 			return
 		case "inactive":
 			client := models.FindByID(s.Keys["id"].(string))
-			client.InactiveAllChannels(m, s)
+			client.InactiveAllChannels(ws, s)
 			return
 		}
 
@@ -122,22 +121,20 @@ func main() {
 			return
 		}
 
-		// models.MatchUsernameWithID(s.Keys["id"].(string), message.Username)
-
 		// handle action of message
 		switch message.Action {
 		case "join":
 			channel.Join(s.Keys["id"].(string))
 
 			channelInfo := channel.InfoMessage()
-			channel.Broadcast(channelInfo, m)
+			channel.Broadcast(channelInfo, ws)
 			return
 
 		case "leave":
 			channel.Leave(s.Keys["id"].(string)) // todo: delete from clients
 
 			channelInfo := channel.InfoMessage()
-			channel.Broadcast(channelInfo, m)
+			channel.Broadcast(channelInfo, ws)
 			return
 		}
 
@@ -147,7 +144,7 @@ func main() {
 			log.Panicln(err)
 		}
 
-		channel.BroadcastOther(s, response, m)
+		channel.BroadcastOther(s, response, ws)
 	})
 
 	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
@@ -156,7 +153,7 @@ func main() {
 	// 	return nil
 	// })
 
-	m.HandleError(func(s *melody.Session, err error) {
+	ws.HandleError(func(s *melody.Session, err error) {
 		log.Println("Session error", err)
 	})
 
@@ -165,28 +162,97 @@ func main() {
 	// 	log.Println("Sent message", string(msg))
 	// })
 
-	ticker := time.NewTicker(m.Config.PingPeriod)
-
-	go func() {
-		for range ticker.C {
-
-			ping, err := json.Marshal(map[string]string{
-				"action": "ping",
-			})
-
-			if err != nil {
-				log.Panicln(err)
-			}
-
-			m.Broadcast([]byte(ping))
-		}
-	}()
-
 	// m.HandlePong(func(s *melody.Session) {
 
 	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
 
 	// })
 
+	go unResponsesPong()
+
 	r.Run(":8000")
+}
+
+func ping(s *melody.Session) {
+
+	ticker := time.NewTicker(PingPeriod)
+
+	ping, err := json.Marshal(map[string]string{
+		"action": "ping",
+	})
+
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	go func() {
+		for range ticker.C {
+			s.Write(ping)
+
+			client, found := models.Clients.Load(s.Keys["id"].(string))
+			if !found {
+				break
+			}
+
+			time := time.Now()
+			client.(*models.Client).PingAt = &time
+		}
+	}()
+}
+
+func pong(s *melody.Session) {
+
+	client, found := models.Clients.Load(s.Keys["id"].(string))
+	if !found {
+		log.Println("new")
+		client = models.NewClient()
+	}
+
+	client.(*models.Client).PingAt = nil
+
+	// log.Println("Pong received", s.IsClosed(), s.Keys["id"])
+
+}
+
+func unResponsesPong() {
+
+	ticker := time.NewTicker(1 * time.Second)
+
+	for range ticker.C {
+
+		models.Clients.Range(func(key, value interface{}) bool {
+			client := value.(*models.Client)
+
+
+			if client.PingAt != nil &&
+				time.Since(client.ConnectAt) > PingPeriod &&
+				time.Since(*client.PingAt) > PongTimeOut {
+
+				session, err := client.GetSession(ws)
+
+				if err != nil {
+
+					if err.Error() == "session not found" {
+						client.Delete()
+						return true
+					}
+
+					log.Println(err)
+					return true
+				}
+
+				client.InactiveAllChannels(ws, session)
+
+
+				err = session.Close()
+				if err != nil {
+					log.Println(err)
+				}
+			}
+
+			return true
+		})
+
+	}
+
 }
