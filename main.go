@@ -206,7 +206,7 @@ func unResponsesPong() {
 		models.Clients.Range(func(key, value interface{}) bool {
 			client := value.(*models.Client)
 
-			if client.Username != "Admin" &&
+			if client.ID != models.AdminClient.ID &&
 				client.PingAt != nil &&
 				time.Since(client.ConnectAt) > PingPeriod &&
 				time.Since(*client.PingAt) > PongTimeOut {
