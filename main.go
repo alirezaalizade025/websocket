@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	PingPeriod  = 10 * time.Second
+	PingPeriod  = 8 * time.Second
 	PongTimeOut = 8 * PingPeriod / 10
 )
 
