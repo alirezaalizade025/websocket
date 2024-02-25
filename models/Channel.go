@@ -46,34 +46,6 @@ func (c *Channel) Join(id string) {
 		Status:    Active,
 		JoinAt:    time.Now().Format(time.RFC3339),
 	})
-
-	// for _, client := range c.ChannelClients {
-	// 	if client.ID == id {
-	// 		return
-	// 	}
-	// }
-
-	// _, found := ChannelClients.Get("id")
-	// if found {
-	// 	return
-	// }
-
-	// c.ChannelClients = append(c.ChannelClients, ChannelClient{
-	// 	ID:     id,
-	// 	Status: Active,
-	// })
-
-	// Channels[c.ChannelName] = &Channel{
-	// 	ChannelName:    c.ChannelName,
-	// 	ChannelClients: c.ChannelClients,
-	// }
-
-	// // add channel to client channels
-	// for i, item := range Clients {
-	// 	if item.ID == id {
-	// 		Clients[i].Channels = append(Clients[i].Channels, c.ChannelName)
-	// 	}
-	// }
 }
 
 func (c *Channel) Leave(id string) {
@@ -100,32 +72,6 @@ func (c *Channel) Leave(id string) {
 		c.RemoveChannel()
 	}
 	// }()
-
-	// for i, u := range c.ChannelClients {
-	// 	if u.ID == id {
-	// 		c.ChannelClients = append(c.ChannelClients[:i], c.ChannelClients[i+1:]...)
-	// 	}
-	// }
-
-	// Channels[c.ChannelName] = &Channel{
-	// 	ChannelName:    c.ChannelName,
-	// 	ChannelClients: c.ChannelClients,
-	// }
-
-	// // remove channel name from client channels
-	// for i, item := range Clients {
-	// 	if item.ID == id {
-	// 		for j, ch := range Clients[i].Channels {
-	// 			if ch == c.ChannelName {
-	// 				Clients[i].Channels = append(Clients[i].Channels[:j], Clients[i].Channels[j+1:]...)
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// if len(c.ChannelClients) == 0 {
-	// 	c.RemoveChannel()
-	// }
 }
 
 func (c *Channel) RemoveChannel() {
@@ -148,18 +94,6 @@ func (c *Channel) ActiveClient(id string) {
 			ChannelClients[i].Status = Active
 		}
 	}
-
-	// for i, ChannelClient := range c.ChannelClients {
-	// 	if ChannelClient.ID == id {
-	// 		c.ChannelClients[i].Status = Active
-	// 	}
-	// }
-
-	// Channels[c.ChannelName] = &Channel{
-	// 	ChannelName:    c.ChannelName,
-	// 	ChannelClients: c.ChannelClients,
-	// }
-
 }
 
 func (c *Channel) InactiveClient(id string) {
@@ -173,17 +107,6 @@ func (c *Channel) InactiveClient(id string) {
 			ChannelClients[i].Status = Inactive
 		}
 	}
-
-	// for i, ChannelClient := range c.ChannelClients {
-	// 	if ChannelClient.ID == id {
-	// 		c.ChannelClients[i].Status = Inactive
-	// 	}
-	// }
-
-	// Channels[c.ChannelName] = &Channel{
-	// 	ChannelName:    c.ChannelName,
-	// 	ChannelClients: c.ChannelClients,
-	// }
 }
 
 func (c *Channel) FirstOrCreate(channelName string) error {
@@ -232,22 +155,6 @@ func (c *Channel) InfoMessage() []byte {
 
 	var joinedUsernames []map[string]interface{}
 
-	// for _, ChannelClient := range c.ChannelClients {
-	// 	client := FindByID(ChannelClient.ID)
-
-	// 	if client.Username == "" {
-	// 		// 	user.Username = id
-	// 		panic("username not found")
-	// 	}
-
-	// 	joinedUsernames = append(joinedUsernames, map[string]interface{}{
-	// 		"username":   client.Username,
-	// 		"connect_at": client.ConnectAt,
-	// 		"avatar":     client.Avatar,
-	// 		"status":     ChannelClient.Status,
-	// 	})
-	// }
-
 	for i, item := range ChannelClients {
 		if item.ChannelID == c.ID {
 			client := FindByID(item.ClientID)
@@ -256,7 +163,7 @@ func (c *Channel) InfoMessage() []byte {
 				// 	user.Username = id
 				ChannelClients = append(ChannelClients[:i], ChannelClients[i+1:]...)
 
-				log.Panic("username not found")
+				log.Println("InfoMessage: username not found")
 			}
 
 			joinedUsernames = append(joinedUsernames, map[string]interface{}{

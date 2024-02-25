@@ -147,26 +147,9 @@ func main() {
 		channel.BroadcastOther(s, response, ws)
 	})
 
-	// m.HandleClose(func(s1 *melody.Session, i int, s2 string) error {
-
-	// 	log.Println("Session closed", s1.IsClosed(), s1.Keys["id"])
-	// 	return nil
-	// })
-
 	ws.HandleError(func(s *melody.Session, err error) {
 		log.Println("Session error", err)
 	})
-
-	// m.HandleSentMessage(func(s *melody.Session, msg []byte) {
-
-	// 	log.Println("Sent message", string(msg))
-	// })
-
-	// m.HandlePong(func(s *melody.Session) {
-
-	// 	log.Println("Pong received", s.IsClosed(), s.Keys["id"])
-
-	// })
 
 	go unResponsesPong()
 
@@ -223,8 +206,8 @@ func unResponsesPong() {
 		models.Clients.Range(func(key, value interface{}) bool {
 			client := value.(*models.Client)
 
-
-			if client.PingAt != nil &&
+			if client.Username != "Admin" &&
+				client.PingAt != nil &&
 				time.Since(client.ConnectAt) > PingPeriod &&
 				time.Since(*client.PingAt) > PongTimeOut {
 
@@ -237,16 +220,18 @@ func unResponsesPong() {
 						return true
 					}
 
-					log.Println(err)
+					log.Println("Get Session: " + err.Error())
 					return true
 				}
 
 				client.InactiveAllChannels(ws, session)
 
+				if !session.IsClosed() {
 
-				err = session.Close()
-				if err != nil {
-					log.Println(err)
+					err = session.Close()
+					if err != nil {
+						log.Println("Close Session: " + err.Error())
+					}
 				}
 			}
 
