@@ -30,7 +30,7 @@ var AdminClient = Client{}
 func GenerateID() string {
 
 	id := uuid.NewString()
-	
+
 	if _, ok := Clients.Load(id); ok {
 		return GenerateID()
 	}
@@ -184,15 +184,19 @@ func (client Client) InactiveAllChannels(m *melody.Melody, s *melody.Session) {
 	}
 }
 
-func FindByUsername(username string) Client {
+func FindByUsername(username string) (c *Client) {
 
 	Clients.Range(func(key, value interface{}) bool {
-		client := value.(*Client)
+		c = value.(*Client)
 
-		return client.Username == username
+		return c.Username != username
 	})
 
-	return Client{}
+	if c.Username == username {
+		return c
+	}
+
+	return &Client{}
 }
 
 func FindByID(id string) Client {

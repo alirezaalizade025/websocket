@@ -17,6 +17,7 @@ type BroadCastStoreRequest struct {
 	Action    string   `json:"action" form:"action" binding:"required,max=50"`
 	Data      string   `json:"data" form:"data" binding:"omitempty,max=1000"`
 	Type      string   `json:"type" form:"type" binding:"omitempty,max=50"`
+	Style     string   `json:"style" form:"style" binding:"omitempty,max=50"`
 	AutoClose int      `json:"auto_close" form:"auto_close" binding:"omitempty,max=10000"`
 	Receivers []string `json:"receivers" form:"receivers" binding:"omitempty"`
 }
@@ -40,19 +41,26 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 		return
 	}
 
-	// generate message
-	message, err := json.Marshal(models.Message{
-		ChannelName: "API",
-		Action:      request.Action,
-		Data: map[string]interface{}{
-			"message":    request.Message,
-			"type":       request.Type,
-			"auto_close": request.AutoClose,
-		},
-	})
-	if err != nil {
-		log.Println(err)
+	var message []byte
+	var err error
+
+	if request.Action == "toast" {
+		// generate message
+		message, err = json.Marshal(models.Message{
+			ChannelName: "API",
+			Action:      request.Action,
+			Data: map[string]interface{}{
+				"message":    request.Message,
+				"type":       request.Style,
+				"auto_close": request.AutoClose,
+			},
+		})
+		if err != nil {
+			log.Println(err)
+		}
 	}
+
+
 
 	// find receivers
 	if len(request.Receivers) > 0 {
