@@ -27,6 +27,8 @@ func main() {
 
 	// utils.LoadDotEnv()
 
+	ws.Config.MaxMessageSize = 1024 * 10
+
 	r := gin.Default()
 
 	r.GET("/ws", func(c *gin.Context) {
