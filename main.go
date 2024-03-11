@@ -35,6 +35,8 @@ func main() {
 		ws.HandleRequest(c.Writer, c.Request)
 	})
 
+	r.Use(middlewares.Cors)
+
 	r.POST("api/broadcast", middlewares.BasicAuth, func(c *gin.Context) {
 		controllers.Broadcast(c, ws)
 	})
