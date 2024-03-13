@@ -68,9 +68,12 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 		var receiversIds []string
 
 		for _, receiver := range request.Receivers {
-			client := models.FindByUsername(receiver)
-			if client.ID != "" {
-				receiversIds = append(receiversIds, client.ID)
+			clients := models.FindByUsername(receiver)
+
+			for _, client := range clients {
+				if client.ID != "" {
+					receiversIds = append(receiversIds, client.ID)
+				}
 			}
 		}
 

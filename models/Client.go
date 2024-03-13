@@ -184,20 +184,31 @@ func (client Client) InactiveAllChannels(m *melody.Melody, s *melody.Session) {
 	}
 }
 
-func FindByUsername(username string) (c *Client) {
+func FindByUsername(username string) (c []*Client) {
 
 	Clients.Range(func(key, value interface{}) bool {
-		c = value.(*Client)
+		client := value.(*Client)
 
-		return c.Username != username
+		if client.Username == username {
+			c = append(c, client)
+		}
+
+		return true
 	})
 
-	if c.Username == username {
-		return c
-	}
+	// Clients.Range(func(key, value interface{}) bool {
+	// 	c = value.(*Client)
 
-	return &Client{}
+	// 	return c.Username != username
+	// })
+
+	// if c.Username == username {
+	// 	return c
+	// }
+
+	return
 }
+
 
 func FindByID(id string) Client {
 
