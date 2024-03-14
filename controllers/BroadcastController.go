@@ -64,9 +64,22 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 	// find receivers
 	if len(request.Receivers) > 0 {
 
+		receivers := request.Receivers
+
+		// remove ignores
+		if len(request.Ignores) > 0 {
+			for _, ignore := range request.Ignores {
+				clients := models.FindByUsername(ignore)
+
+				for _, c := range clients {
+					receivers = utils.Remove(receivers, c.Username)
+				}
+			}
+		}
+
 		var receiversIds []string
 
-		for _, receiver := range request.Receivers {
+		for _, receiver := range receivers {
 			clients := models.FindByUsername(receiver)
 
 			for _, client := range clients {
@@ -76,12 +89,7 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 			}
 		}
 
-		// remove ignores
-		if len(request.Ignores) > 0 {
-			for _, ignore := range request.Ignores {
-				receiversIds = utils.Remove(receiversIds, ignore)
-			}
-		}
+
 
 		m.BroadcastFilter(message, func(s *melody.Session) bool {
 			return utils.Contains(receiversIds, s.Keys["id"].(string))
