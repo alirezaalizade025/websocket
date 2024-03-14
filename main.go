@@ -6,7 +6,6 @@ import (
 	"time"
 
 	// "time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 
@@ -110,10 +109,14 @@ func main() {
 		case "active":
 			client := models.FindByID(s.Keys["id"].(string))
 			client.ActiveAllChannels(ws, s)
+			s.Set("status", models.Active)
+			client.SetStatus(models.Active)
 			return
 		case "inactive":
 			client := models.FindByID(s.Keys["id"].(string))
 			client.InactiveAllChannels(ws, s)
+			s.Set("status", models.Inactive)
+			client.SetStatus(models.Inactive)
 			return
 		}
 

@@ -17,6 +17,7 @@ type Client struct {
 	ConnectAt time.Time  `json:"connect_at"`
 	Avatar    string     `json:"avatar"`
 	PingAt    *time.Time `json:"ping_at"`
+	Status    Status     `json:"status"`
 }
 
 var Clients = &sync.Map{}
@@ -46,6 +47,7 @@ func NewClient() *Client {
 	client := &Client{
 		ID:        GenerateID(),
 		ConnectAt: time.Now(), // Set ConnectAt to current timestamp
+		Status:    Active,
 	}
 
 	Clients.Store(client.ID, client)
@@ -196,19 +198,8 @@ func FindByUsername(username string) (c []*Client) {
 		return true
 	})
 
-	// Clients.Range(func(key, value interface{}) bool {
-	// 	c = value.(*Client)
-
-	// 	return c.Username != username
-	// })
-
-	// if c.Username == username {
-	// 	return c
-	// }
-
 	return
 }
-
 
 func FindByID(id string) Client {
 
@@ -217,4 +208,10 @@ func FindByID(id string) Client {
 	}
 
 	return Client{}
+}
+
+func (client *Client) SetStatus(status Status) {
+	client.Status = status
+
+	Clients.Store(client.ID, client)
 }
