@@ -20,6 +20,7 @@ type BroadCastStoreRequest struct {
 	Style     string   `json:"style" form:"style" binding:"omitempty,max=50"`
 	AutoClose int      `json:"auto_close" form:"auto_close" binding:"omitempty,max=10000"`
 	Receivers []string `json:"receivers" form:"receivers" binding:"omitempty"`
+	Ignores   []string `json:"ignores" form:"ignores" binding:"omitempty"`
 }
 
 func Broadcast(c *gin.Context, m *melody.Melody) {
@@ -60,8 +61,6 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 		}
 	}
 
-
-
 	// find receivers
 	if len(request.Receivers) > 0 {
 
@@ -77,13 +76,30 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 			}
 		}
 
+		// remove ignores
+		if len(request.Ignores) > 0 {
+			for _, ignore := range request.Ignores {
+				receiversIds = utils.Remove(receiversIds, ignore)
+			}
+		}
+
 		m.BroadcastFilter(message, func(s *melody.Session) bool {
 			return utils.Contains(receiversIds, s.Keys["id"].(string))
 		})
 
 	} else {
 
-		m.Broadcast(message)
+		// remove ignores
+		if len(request.Ignores) > 0 {
+			m.BroadcastFilter(message, func(s *melody.Session) bool {
+				client := models.FindByID(s.Keys["id"].(string))
+
+				return !utils.Contains(request.Ignores, client.Username)
+			})
+		} else {
+
+			m.Broadcast(message)
+		}
 
 	}
 

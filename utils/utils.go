@@ -22,3 +22,12 @@ func Contains(haystack []string, needle string) bool {
 	return false
 
 }
+
+func Remove(haystack []string, needle string) []string {
+	for i, item := range haystack {
+		if item == needle {
+			return append(haystack[:i], haystack[i+1:]...)
+		}
+	}
+	return haystack
+}
