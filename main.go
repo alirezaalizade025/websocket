@@ -6,6 +6,7 @@ import (
 	"time"
 
 	// "time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 
@@ -76,7 +77,8 @@ func main() {
 		}
 
 		if message.Action == "pong" {
-			pong(s)
+			pong(s, message)
+
 			return
 		}
 
@@ -190,7 +192,7 @@ func ping(s *melody.Session) {
 	}()
 }
 
-func pong(s *melody.Session) {
+func pong(s *melody.Session, message models.Message) {
 
 	client, found := models.Clients.Load(s.Keys["id"].(string))
 	if !found {
@@ -199,6 +201,25 @@ func pong(s *melody.Session) {
 	}
 
 	client.(*models.Client).PingAt = nil
+
+	if message.Data == nil || message.Data.(map[string]interface{})["status"] == nil {
+		return
+	}
+
+	user := client.(*models.Client)
+
+	if message.Data.(map[string]interface{})["status"].(string) == "active" && user.Status == models.Inactive {
+
+		user.ActiveAllChannels(ws, s)
+		s.Set("status", models.Active)
+		user.SetStatus(models.Active)
+
+	} else if message.Data.(map[string]interface{})["status"].(string) == "inactive" && user.Status == models.Active {
+
+		user.InactiveAllChannels(ws, s)
+		s.Set("status", models.Inactive)
+		user.SetStatus(models.Inactive)
+	}
 
 	// log.Println("Pong received", s.IsClosed(), s.Keys["id"])
 
