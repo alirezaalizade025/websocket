@@ -13,7 +13,7 @@ import (
 	"socket/controllers"
 	"socket/middlewares"
 	"socket/models"
-	// "socket/utils"
+	"socket/utils"
 )
 
 const (
@@ -45,7 +45,6 @@ func main() {
 
 		client := models.NewClient()
 
-		// s.Keys = map[string]interface{}{"id": client.ID}
 		s.Set("id", client.ID)
 
 		go ping(s)
@@ -63,6 +62,8 @@ func main() {
 		client.LeaveAllChannels(ws)
 
 		client.Delete()
+
+		ws.Broadcast([]byte(models.ClientsInfo()))
 
 		s.Close()
 	})
@@ -83,10 +84,8 @@ func main() {
 		}
 
 		if message.Action == "init" {
-			client := models.FindByID(s.Keys["id"].(string))
-			client.UpdateClient(message)
 
-			s.Write([]byte(client.InitMessage()))
+			initClient(s, message)
 
 			return
 		}
@@ -122,9 +121,15 @@ func main() {
 			return
 		}
 
+		// peer to peer
+		if message.Action == "p2p" {
+			p2p(message)
+			return
+		}
+
 		// find channel
 		channel := models.Channel{}
-		err := channel.FirstOrCreate(message.ChannelName)
+		err := channel.FirstOrCreate(*message.ChannelName)
 		if err != nil {
 			log.Panicln(err)
 			return
@@ -165,6 +170,48 @@ func main() {
 	r.Run(":8000")
 }
 
+func p2p(message models.Message) {
+	if message.Data == nil {
+		log.Println("p2p message data is nil")
+	}
+
+	if message.Username == nil {
+		log.Println("p2p message username is nil")
+	}
+
+	clients := models.FindByUsername(*message.Username)
+
+	if len(clients) == 0 {
+		log.Println("p2p message username not found")
+	}
+
+	receiversIds := []string{}
+
+	for _, client := range clients {
+
+		receiversIds = append(receiversIds, client.ID)
+
+	}
+
+	response, err := json.Marshal(message)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	ws.BroadcastFilter(response, func(s *melody.Session) bool {
+		return utils.Contains(receiversIds, s.Keys["id"].(string))
+	})
+}
+
+func initClient(s *melody.Session, message models.Message) {
+	client := models.FindByID(s.Keys["id"].(string))
+	client.UpdateClient(message)
+
+	s.Write([]byte(client.InitMessage()))
+
+	ws.Broadcast([]byte(models.ClientsInfo()))
+}
+
 func ping(s *melody.Session) {
 
 	ticker := time.NewTicker(PingPeriod)
@@ -196,7 +243,6 @@ func pong(s *melody.Session, message models.Message) {
 
 	client, found := models.Clients.Load(s.Keys["id"].(string))
 	if !found {
-		log.Println("new")
 		client = models.NewClient()
 	}
 

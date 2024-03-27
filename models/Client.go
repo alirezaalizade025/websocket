@@ -149,6 +149,51 @@ func (client Client) LeaveAllChannels(m *melody.Melody) {
 	}
 }
 
+func ClientsInfo() []byte {
+
+	joinedUsernames := []map[string]interface{}{}
+
+	Clients.Range(func(key, value interface{}) bool {
+		client := value.(*Client)
+
+		if client.Username == "" {
+			// 	user.Username = id
+			Clients.Delete(client.ID)
+
+			return true
+		}
+
+		joinedUsernames = append(joinedUsernames, map[string]interface{}{
+			"username": client.Username,
+			"avatar":   client.Avatar,
+			"status":   client.Status,
+		})
+
+		return true
+	})
+
+	type Data struct {
+		// ChannelName    string                   `json:"channel_name"`
+		ChannelClients []map[string]interface{} `json:"users"`
+	}
+
+	ChannelName := MessageTypeChannelGeneral
+
+	info, err := json.Marshal(Message{
+		ChannelName: (*string)(&ChannelName),
+		Action:      "clients_info",
+		Data: Data{
+			// ChannelName:    c.ChannelName,
+			ChannelClients: joinedUsernames,
+		},
+	})
+
+	if err != nil {
+		log.Panicln(err)
+	}
+	return info
+}
+
 func (client Client) ActiveAllChannels(m *melody.Melody, s *melody.Session) {
 
 	for i, item := range ChannelClients {

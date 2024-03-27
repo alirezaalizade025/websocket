@@ -58,10 +58,12 @@ func Broadcast(c *gin.Context, m *melody.Melody) {
 	var message []byte
 	var err error
 
+	messageType := models.MessageTypeAPI
+
 	if request.Action == "toast" {
 		// generate message
 		message, err = json.Marshal(models.Message{
-			ChannelName: "API",
+			ChannelName: (*string)(&messageType),
 			Action:      request.Action,
 			Data: map[string]interface{}{
 				"message":    request.Message,

@@ -181,7 +181,7 @@ func (c *Channel) InfoMessage() []byte {
 	}
 
 	info, err := json.Marshal(Message{
-		ChannelName: c.ChannelName,
+		ChannelName: &c.ChannelName,
 		Action:      "channel_info",
 		Data: Data{
 			// ChannelName:    c.ChannelName,
