@@ -163,6 +163,19 @@ func ClientsInfo() []byte {
 			return true
 		}
 
+		// if username not exists in joinedUsernames, append it
+		for _, item := range joinedUsernames {
+			if item["username"] == client.Username {
+
+				// if existed item status is inactive and current client status is active, update status
+				if item["status"] == Inactive && client.Status == Active {
+					item["status"] = Active
+				}
+
+				return true
+			}
+		}
+
 		joinedUsernames = append(joinedUsernames, map[string]interface{}{
 			"username": client.Username,
 			"avatar":   client.Avatar,
