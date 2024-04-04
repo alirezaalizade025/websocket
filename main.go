@@ -186,11 +186,23 @@ func p2p(message models.Message) {
 	}
 
 	receiversIds := []string{}
+	var activeClientIds []string
+	var inactiveClientIds []string
 
 	for _, client := range clients {
 
-		receiversIds = append(receiversIds, client.ID)
+		if client.ID != "" {
 
+			if client.Status == models.Active {
+				activeClientIds = append(activeClientIds, client.ID)
+			} else {
+				inactiveClientIds = append(inactiveClientIds, client.ID)
+			}
+		}
+
+		clientReceiversIds := handleSendMode("active_first", activeClientIds, inactiveClientIds)
+		receiversIds = append(receiversIds, clientReceiversIds...)
+		
 	}
 
 	response, err := json.Marshal(message)
@@ -201,6 +213,21 @@ func p2p(message models.Message) {
 	ws.BroadcastFilter(response, func(s *melody.Session) bool {
 		return utils.Contains(receiversIds, s.Keys["id"].(string))
 	})
+}
+
+func handleSendMode(mode string, activeClientIds, inactiveClientIds []string) (receiversIds []string) {
+	if mode == "active_only" {
+		receiversIds = activeClientIds
+	} else if mode == "active_first" {
+		if len(activeClientIds) > 0 {
+			receiversIds = activeClientIds
+		} else {
+			receiversIds = inactiveClientIds
+		}
+	} else {
+		receiversIds = append(activeClientIds, inactiveClientIds...)
+	}
+	return receiversIds
 }
 
 func initClient(s *melody.Session, message models.Message) {
