@@ -260,6 +260,11 @@ func ping(s *melody.Session) {
 				break
 			}
 
+			if client.(*models.Client).Username == "" {
+				s.Close()
+				continue
+			}
+
 			time := time.Now()
 			client.(*models.Client).PingAt = &time
 		}
